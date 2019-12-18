@@ -8,6 +8,8 @@ pipeline {
     CLUSTER_ZONE = "us-east1-d"
     IMAGE_TAG = "gcr.io/${PROJECT}/${APP_NAME}:${env.BRANCH_NAME}.${env.BUILD_NUMBER}"
     JENKINS_CRED = "${PROJECT}"
+    DOCKER_REG = "samuelrad/first"
+    DOCKER_REG_CRED = "dockerhub"
   }
 
   agent {
@@ -24,8 +26,8 @@ spec:
   # Use service account that can deploy to all namespaces
   serviceAccountName: cd-jenkins
   containers:
-  - name: golang
-    image: golang:1.10
+  - name: node
+    image: node:12.14.0-alpine
     command:
     - cat
     tty: true
@@ -45,22 +47,24 @@ spec:
   stages {
     stage('Test') {
       steps {
-        container('golang') {
-          sh """
-            ln -s `pwd` /go/src/sample-app
-            cd /go/src/sample-app
-            go test
-          """
+        steps {
+          sh 'node --version'
         }
       }
     }
-    stage('Build and push image with Container Builder') {
+    /*stage('Build and push image with Container Builder') {
       steps {
-        container('gcloud') {
-          sh "PYTHONUNBUFFERED=1 gcloud builds submit -t ${IMAGE_TAG} ."
+        script {
+          docker.build DOCKER_REG + env.BUILD_NUMBER
+        }
+        script {
+          docker.withRegistry( '', env.DOCKER_REG_CRED ) {
+            dockerImage.push()
+          }
         }
       }
-    }
+    }*/
+    /*
     stage('Deploy Canary') {
       // Canary branch
       when { branch 'canary' }
@@ -106,6 +110,6 @@ spec:
           echo "Then access your service via http://localhost:8001/api/v1/proxy/namespaces/${env.BRANCH_NAME}/services/${FE_SVC_NAME}:80/"
         }
       }
-    }
+    }*/
   }
 }
